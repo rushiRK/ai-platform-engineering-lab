@@ -19,7 +19,9 @@ class LLMClient:
             region_name = self.region
         )
 
-    def invoke(self, prompt: str):
+    def invoke(self, prompt: str, 
+               inference_config: dict | None = None,
+        ):
         request_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -37,6 +39,7 @@ class LLMClient:
                         ],
                     }
                 ],
+                inferenceConfig = inference_config or {},
             )
 
             latency = time.perf_counter() - statrt
