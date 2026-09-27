@@ -217,3 +217,78 @@ The gateway must:
 - Handle cases where final metadata is unavailable
 
 This makes streaming an important architectural concern for a production AI platform.
+## Day 4 — Model Comparison
+
+### Objective
+
+Compare multiple foundation models using the same workloads and begin identifying the information an AI platform needs for model selection and routing.
+
+### Models
+
+The experiment compared:
+
+- Amazon Nova Micro
+- Amazon Nova Lite
+
+The same prompts and inference configuration were used for both models.
+
+### Workloads
+
+Three types of prompts were tested:
+
+1. Simple explanation
+2. Technical platform-engineering explanation
+3. AI gateway architecture design
+
+For each request, the experiment captured:
+
+- Model
+- Latency
+- Input tokens
+- Output tokens
+- Total tokens
+- Generated response
+- Estimated inference cost
+
+### Observations
+
+Model behavior differed even when both models received identical prompts.
+
+In this small experiment, Nova Lite had lower latency for two of the three workloads, while Nova Micro had slightly lower latency for the architecture workload. Because only a few requests were executed, these measurements are not sufficient to establish general latency characteristics.
+
+The models also differed substantially in output length. For the technical prompt, Nova Micro generated 570 output tokens while Nova Lite generated 389. For the architecture task, Nova Micro generated 268 output tokens while Nova Lite generated 211.
+
+Both models produced useful responses for the tested text workloads, but Nova Lite was generally more concise in the more complex prompts.
+
+### Cost
+
+Inference cost depends on both the model's token pricing and the number of tokens consumed.
+
+A model that generates fewer tokens is not necessarily the least expensive model because different models may have different per-token prices.
+
+Therefore, an AI platform should capture both token consumption and model identity for every request.
+
+### Model Routing
+
+Model selection should not be based on a single characteristic such as latency.
+
+A future routing decision may consider:
+
+- Input modality
+- Model capability
+- Latency requirements
+- Cost
+- Request complexity
+- Context size
+- Availability
+- Quality requirements
+
+For example, a text-only request may be eligible for Nova Micro, while an image-based request requires a model that supports image input such as Nova Lite.
+
+### Platform Engineering Takeaway
+
+An AI gateway should separate applications from specific model providers and model IDs.
+
+Applications should express what they need, while the platform can eventually determine which model satisfies those requirements based on capability, performance, reliability, and cost.
+
+The Day 4 comparison provides the first data needed to build that model-routing layer.
