@@ -292,3 +292,91 @@ An AI gateway should separate applications from specific model providers and mod
 Applications should express what they need, while the platform can eventually determine which model satisfies those requirements based on capability, performance, reliability, and cost.
 
 The Day 4 comparison provides the first data needed to build that model-routing layer.
+
+## Day 5 — Reusable LLM Client
+
+### Objective
+
+Create a small application-facing LLM client that hides provider-specific implementation details and exposes a consistent response contract.
+
+### Public Client API
+
+Applications can invoke a model using a logical model name:
+
+```python
+client = LLMClient(
+    model="nova-micro"
+)
+
+result = client.invoke(
+    "Explain what an AI platform is in three sentences."
+)
+```
+
+Applications do not need to know the underlying Amazon Bedrock model identifier or Bedrock response format.
+
+### Model Registry
+
+Logical model names are mapped to provider-specific configuration through a model registry.
+
+For example:
+
+```text
+nova-micro
+    ↓
+Amazon Bedrock
+    ↓
+amazon.nova-micro-v1:0
+```
+
+This creates a boundary between application code and provider-specific configuration.
+
+### Normalized Response
+
+The public client returns a structured `LLMResponse` containing:
+
+- Request ID
+- Provider request ID
+- Timestamp
+- Logical model name
+- Status
+- Generated response
+- Latency
+- Token usage
+- Stop reason
+- Error information
+
+Token usage is represented separately through a `TokenUsage` structure.
+
+This gives applications a predictable contract instead of requiring them to parse provider-specific response objects.
+
+### Model Switching
+
+The same application code was successfully tested with:
+
+- `nova-micro`
+- `nova-lite`
+
+Only the logical model name changed.
+
+The application did not need changes to its Bedrock request construction, response parsing, authentication, or telemetry handling.
+
+### Local Validation
+
+An unsupported logical model such as:
+
+```text
+gpt-super-ultra
+```
+
+is rejected by the client before a request reaches Amazon Bedrock.
+
+This allows the platform layer to validate supported models independently of the underlying provider.
+
+### Platform Engineering Takeaway
+
+Applications should depend on a stable platform contract rather than directly depending on provider APIs and model identifiers.
+
+A platform abstraction allows provider-specific implementation details to change while minimizing changes required in application code.
+
+This client is intentionally small, but it establishes the boundary that can later evolve into provider abstraction, model routing, centralized policy enforcement, observability, and an AI Gateway.
