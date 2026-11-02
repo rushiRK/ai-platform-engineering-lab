@@ -13,7 +13,7 @@ def parse_and_validate(raw_text: str) -> SupportTicket:
     )
 
 
-def run_test(name: str, raw_text: str):
+def run_test(name: str, raw_text: str, expected_error=None):
     print("\n" + "=" * 70)
     print(f"TEST: {name}")
     print("=" * 70)
