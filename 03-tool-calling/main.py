@@ -1,10 +1,12 @@
 import json
+import sys
 
 import boto3
 from botocore.config import Config
 
 from tool_config import build_tool_config
 from tool_executor import build_tool_result
+from botocore.exceptions import BotoCoreError, ClientError
 
 REGION = "us-east-1"
 MODEL_ID = "amazon.nova-micro-v1:0"
@@ -92,10 +94,45 @@ def request_service_status() -> dict:
 
     return final_response
 
-if __name__=="__main__":
-    response = request_service_status()
+def cli() -> int:
+    try:
+        response = request_service_status()
+
+    except ClientError as error:
+        code = error.response.get("Error", {}).get("Code", "Unknown")
+        request_id = error.response.get(
+            "ResponseMetadata", {}
+        ).get("RequestId", "unknown")
+
+        print(
+            f"BEDROCK SERVICE FAILED: {code}; request_id={request_id}",
+            file=sys.stderr,
+        )
+        return 1
+
+    except BotoCoreError as error:
+        print(
+            f"AWS SDK FAILED: {type(error).__name__}",
+            file=sys.stderr,
+        )
+        return 1
+
+    except RuntimeError as error:
+        print(f"WORKFLOW FAILED: {error}", file=sys.stderr)
+        return 1
+
     print("STOP REASON:")
     print(response.get("stopReason"))
 
     print("\nASSISTANT MESSAGE:")
-    print(json.dumps(response.get("output", {}).get("message"), indent=2))
+    print(
+        json.dumps(
+            response.get("output", {}).get("message"),
+            indent=2,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(cli())

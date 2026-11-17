@@ -1,8 +1,10 @@
 import unittest
 from copy import deepcopy
 from unittest.mock import patch
+import io
 
 from main import request_service_status
+from main import cli
 from botocore.exceptions import ReadTimeoutError
 
 
@@ -183,6 +185,26 @@ class ToolCallingFlowTests(unittest.TestCase):
             self.assertIs(caught.exception, timeout)
             self.assertEqual(bedrock.converse.call_count, 2)
             mock_tool.assert_called_once_with("inference-gateway")
+    
+    def test_cli_reports_timeout_and_returns_failure(self):
+        timeout = ReadTimeoutError(
+            endpoint_url="https://example.invalid"
+        )
 
+        with (
+            patch(
+                "main.request_service_status",
+                side_effect=timeout,
+            ) as mock_request,
+            patch("sys.stderr", new_callable=io.StringIO) as stderr,
+        ):
+            exit_code = cli()
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn(
+            "AWS SDK FAILED: ReadTimeoutError",
+            stderr.getvalue(),
+        )
+        mock_request.assert_called_once_with()
 if __name__ == "__main__":
     unittest.main()
